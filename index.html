@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="assets/escudo.png">
+<script>try{var t=localStorage.getItem("tema");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="light"}</script>
+<title>Conversor de mídia · Smart Shield</title>
+<style>
+@font-face{font-family:"Barlow Condensed";font-weight:600;font-display:swap;src:url(assets/fonts/barlow-condensed-latin-600-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow Condensed";font-weight:700;font-display:swap;src:url(assets/fonts/barlow-condensed-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:400;font-display:swap;src:url(assets/fonts/barlow-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:500;font-display:swap;src:url(assets/fonts/barlow-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Barlow";font-weight:600;font-display:swap;src:url(assets/fonts/barlow-latin-600-normal.woff2) format("woff2")}
+
+:root{
+  --papel:#F6F5F3; --branco:#FFFFFF; --tinta:#181412; --cinza:#6B665F; --linha:#DEDBD6; --linha-forte:#C4C0B9; --hover:#F6F5F3; --sobre-over:#FFF7F3;
+  --laranja:#FF4E00; --laranja-esc:#D63F00; --sobre-laranja:#181412;
+  --ok:#16794A; --aviso:#9A5B00; --erro:#B42318;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --texto:"Barlow",system-ui,sans-serif;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --papel:#0E0D0C; --branco:#181615; --tinta:#F3F1ED; --cinza:#9C968D; --linha:#2B2825; --linha-forte:#443F3A; --hover:#2B2825; --sobre-over:#1E1410;
+  --ok:#3DD68C; --aviso:#F5A623; --erro:#FF6B5E;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--papel);color:var(--tinta);font:400 16px/1.5 var(--texto)}
+.hide{display:none!important}
+:focus-visible{outline:2px solid var(--laranja);outline-offset:2px}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+
+/* ---------- estrutura ---------- */
+.top{max-width:1120px;margin:0 auto;padding:22px 24px 0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.top img{height:34px;width:auto;display:block}
+:root:not([data-theme="dark"]) .logo-escuro,:root[data-theme="dark"] .logo-claro{display:none}
+.tema{width:auto;flex:none}
+.tema button{padding:7px 14px}
+.layout{max-width:1120px;margin:0 auto;padding:28px 24px 72px;display:grid;grid-template-columns:minmax(0,1fr);gap:32px;align-items:start}
+body.has-files .layout{grid-template-columns:minmax(0,1fr) 340px}
+@media(max-width:860px){body.has-files .layout{grid-template-columns:minmax(0,1fr)}}
+.side{display:none}
+body.has-files .side{display:block;position:sticky;top:20px}
+@media(max-width:860px){body.has-files .side{position:static}}
+
+/* ---------- área de soltar ---------- */
+.drop{display:block;background:var(--branco);border:2px dashed var(--linha-forte);border-radius:8px;cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--laranja)}
+.drop.over{background:var(--sobre-over)}
+.drop-big{position:relative;overflow:hidden;padding:64px 40px 60px}
+.drop-big::after{content:"";position:absolute;right:56px;top:50%;width:260px;height:325px;transform:translateY(-50%);background:url(assets/escudo.png) center/contain no-repeat;opacity:.16;pointer-events:none}
+.drop-big>*{position:relative;z-index:1}
+@media(max-width:700px){.drop-big::after{display:none}.drop-big{padding:40px 22px}}
+.drop-big h1{font:700 clamp(44px,7vw,76px)/.92 var(--display);letter-spacing:-.005em;margin:0 0 18px;max-width:16ch}
+.drop-big p{margin:0 0 26px;color:var(--cinza);max-width:46ch;font-size:17px}
+.drop-small{display:none;padding:14px 18px;font-weight:500}
+body.has-files .drop-big{display:none}
+body.has-files .drop-small{display:flex;align-items:center;gap:10px}
+.drop-small svg{flex:none}
+.btn{display:inline-block;border:0;border-radius:6px;padding:12px 22px;font:700 20px/1 var(--display);letter-spacing:.01em;background:var(--laranja);color:var(--sobre-laranja);transition:background .12s}
+.btn:hover{background:var(--laranja-esc);color:#fff}
+.btn:disabled{background:var(--linha);color:var(--cinza);cursor:not-allowed}
+.btn.full{width:100%;padding:15px 22px;font-size:22px}
+.btn.ghost{background:transparent;border:1.5px solid var(--tinta);color:var(--tinta)}
+.btn.ghost:hover{background:var(--tinta);color:var(--papel)}
+.link{background:none;border:0;padding:4px 0;font-weight:600;color:var(--tinta);text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--linha-forte)}
+.link:hover{text-decoration-color:var(--laranja)}
+.link:disabled{color:var(--cinza);cursor:not-allowed;text-decoration:none}
+
+/* ---------- lista ---------- */
+.toolbar{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:24px 0 10px}
+.toolbar h2{font:700 26px/1 var(--display);margin:0}
+.toolbar .acts{display:flex;gap:20px}
+.item{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:4px 16px;align-items:center;background:var(--branco);border:1px solid var(--linha);border-radius:8px;padding:12px;margin-bottom:10px}
+.thumb{width:64px;height:64px;border-radius:5px;background:var(--papel);overflow:hidden;display:grid;place-items:center;grid-row:1/3;color:var(--cinza);font:600 13px var(--display)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.nome{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{color:var(--cinza);font-size:14px}
+.item .acoes{display:flex;gap:14px;align-items:center;grid-row:1/3;grid-column:3}
+.item .acoes .btn{padding:9px 16px;font-size:17px}
+.item .estado{grid-column:2/4;min-width:0}
+.item.working{border-color:var(--tinta)}
+.prog{height:4px;background:var(--linha);border-radius:2px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;width:0;background:var(--laranja);transition:width .2s}
+.msg-erro{color:var(--erro);font-size:14px}
+.msg-aviso{color:var(--aviso);font-size:14px}
+.msg-info{color:var(--cinza);font-size:14px}
+@media(max-width:560px){.item{grid-template-columns:48px minmax(0,1fr)}.thumb{width:48px;height:48px;grid-row:1}.item .acoes{grid-column:1/3;grid-row:auto;justify-content:flex-end}.item .estado{grid-column:1/3}}
+
+/* régua de corte: o resultado é o pedaço que sobrou da folha original */
+.ruler{margin-top:8px}
+.ruler-track{position:relative;height:12px;background:var(--linha);border-radius:2px}
+.ruler-cut{position:absolute;left:0;top:0;bottom:0;width:100%;background:var(--laranja);border-radius:2px 0 0 2px;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.ruler-cut::after{content:"";position:absolute;right:-1px;top:-5px;bottom:-5px;width:2px;background:var(--tinta)}
+.ruler-nums{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 14px;margin-top:8px}
+.ruler-nums strong{font:700 34px/1 var(--display);letter-spacing:-.005em}
+.ruler-nums .de{color:var(--cinza);font-size:14px}
+.ruler-nums .delta{font:700 20px/1 var(--display);color:var(--ok)}
+.ruler-nums .delta.mais{color:var(--aviso)}
+.ruler-nums .dim{color:var(--cinza);font-size:14px;margin-left:auto}
+
+/* ---------- painel de ajustes ---------- */
+.painel{background:var(--branco);border:1px solid var(--linha);border-radius:8px}
+.sec{padding:20px 20px 6px;border-bottom:1px solid var(--linha)}
+.sec h2{font:700 24px/1 var(--display);margin:0 0 16px;display:flex;align-items:baseline;gap:8px}
+.sec h2 small{font:400 14px var(--texto);color:var(--cinza)}
+.campo{margin-bottom:18px}
+.campo>label,.campo>.rot{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.seg{display:flex;border:1px solid var(--linha-forte);border-radius:6px;overflow:hidden}
+.seg button{flex:1 1 0;border:0;border-right:1px solid var(--linha-forte);background:var(--branco);padding:8px 6px;font-weight:500;font-size:14px;white-space:nowrap}
+.seg button:last-child{border-right:0}
+.seg button:hover{background:var(--hover)}
+.seg button[aria-pressed=true]{background:var(--tinta);color:var(--papel)}
+.seg button:focus-visible{outline-offset:-2px}
+.sub{margin-top:10px}
+.dica{font-size:13px;color:var(--cinza);margin-top:6px;line-height:1.4}
+.dica.aviso{color:var(--aviso)}
+input[type=number],select.vis{width:100%;background:var(--branco);border:1px solid var(--linha-forte);border-radius:6px;padding:9px 10px}
+.par{display:flex;align-items:center;gap:8px}
+.par span{color:var(--cinza)}
+.unid{position:relative}
+.unid input{padding-right:42px}
+.unid::after{content:attr(data-u);position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--cinza);font-size:14px;pointer-events:none}
+input[type=range]{width:100%;accent-color:var(--laranja);height:24px;margin:0}
+.valor-q{display:flex;justify-content:space-between;font-size:13px;color:var(--cinza);margin-top:2px}
+.rodape-painel{padding:20px}
+.rodape-painel .btn+.btn{margin-top:10px}
+.foot{max-width:1120px;margin:0 auto;padding:0 24px 40px;color:var(--cinza);font-size:13px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div><img class="logo-claro" src="assets/logo-claro.png" alt="Smart Shield" width="686" height="150"><img class="logo-escuro" src="assets/logo-escuro.png" alt="" width="686" height="150"></div>
+  <div class="seg tema" id="tema" role="group" aria-label="Tema da página"><button type="button" data-t="light" aria-pressed="false">Claro</button><button type="button" data-t="dark" aria-pressed="false">Escuro</button></div>
+</header>
+
+<div class="layout">
+  <main>
+    <label class="drop" id="drop" tabindex="0">
+      <div class="drop-big">
+        <h1>Solte aqui seus arquivos</h1>
+        <p>Troque o formato, reduza o tamanho e mude a resolução de imagens e vídeos. Tudo é processado neste computador, nada é enviado para a internet.</p>
+        <span class="btn">Escolher arquivos</span>
+      </div>
+      <div class="drop-small">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 3v12M3 9h12"/></svg>
+        Adicionar mais arquivos, ou solte aqui
+      </div>
+      <input id="pick" type="file" multiple accept="image/*,video/*,.mkv,.avi,.mov,.m4v,.3gp,.wmv,.flv" class="hide">
+    </label>
+
+    <div class="toolbar hide" id="toolbar">
+      <h2 id="count"></h2>
+      <div class="acts">
+        <button class="link" id="zip" disabled>Baixar tudo (.zip)</button>
+        <button class="link" id="clear" disabled>Limpar lista</button>
+      </div>
+    </div>
+    <div id="list"></div>
+  </main>
+
+  <aside class="side">
+    <div class="painel">
+      <div id="sections"></div>
+      <div class="rodape-painel">
+        <button class="btn full" id="go" disabled>Converter</button>
+        <button class="btn full ghost hide" id="cancel">Cancelar</button>
+      </div>
+    </div>
+  </aside>
+</div>
+<p class="foot">Vídeo roda no navegador e é mais lento que um programa instalado. Arquivos acima de 1 GB podem travar.</p>
+
+<script type="module">
+import { FFmpeg } from './vendor/ffmpeg/index.js';
+import { fetchFile } from './vendor/util/index.js';
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const nf = (v,d) => v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmt = b => b>=1073741824 ? nf(b/1073741824,2)+' GB' : b>=1048576 ? nf(b/1048576,2)+' MB' : nf(Math.max(1,b/1024),0)+' KB';
+const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const VIDEO_EXT = ['mp4','mov','webm','mkv','avi','m4v','3gp','wmv','flv'];
+const ext = n => (n.split('.').pop()||'').toLowerCase();
+const kindOf = f => f.type.startsWith('image/') ? 'image' : (f.type.startsWith('video/') || VIDEO_EXT.includes(ext(f.name))) ? 'video' : null;
+const even = n => Math.max(2, Math.round(n/2)*2);
+
+/* ---------- suporte de formatos de imagem do navegador ---------- */
+const canEncode = mime => new Promise(r => { const c=document.createElement('canvas'); c.width=c.height=2; c.toBlob(b=>r(!!b&&b.type===mime),mime,.5); });
+const IMG_FORMATS = [{v:'image/webp',l:'WebP',e:'webp'},{v:'image/jpeg',l:'JPEG',e:'jpg'},{v:'image/png',l:'PNG',e:'png'},{v:'image/avif',l:'AVIF',e:'avif'}];
+const VID_FORMATS = [{v:'mp4',l:'MP4',e:'mp4'},{v:'webm',l:'WebM',e:'webm'}];
+const supported = {};
+for (const f of IMG_FORMATS) supported[f.v] = await canEncode(f.v);
+
+/* ---------- painel de ajustes ---------- */
+function section(kind){
+  const isImg = kind==='image';
+  const fmts = (isImg ? IMG_FORMATS.filter(f=>supported[f.v]) : VID_FORMATS).map(f=>`<option value="${f.v}">${f.l}</option>`).join('');
+  return `<section class="sec hide" id="card-${kind}">
+  <h2>${isImg?'Imagens':'Vídeos'} <small id="cnt-${kind}"></small></h2>
+  <div class="campo"><span class="rot">Formato de saída</span>
+    <select id="${kind}-fmt" data-seg>${fmts}</select>
+    <div class="dica" id="${kind}-fmthint"></div>
+  </div>
+  <div class="campo"><span class="rot">Tamanho do arquivo</span>
+    <select id="${kind}-comp" data-seg>
+      <option value="quality">Qualidade</option>
+      <option value="pct">% do original</option>
+      <option value="mb">Tamanho alvo</option>
+    </select>
+    <div class="sub" id="${kind}-q-box"><input type="range" id="${kind}-q" min="1" max="100" value="${isImg?80:60}" aria-label="Qualidade"><div class="valor-q"><span>Menor arquivo</span><span id="${kind}-qv"></span><span>Melhor qualidade</span></div></div>
+    <div class="sub hide" id="${kind}-pct-box"><div class="unid" data-u="%"><input type="number" id="${kind}-pct" min="1" max="99" value="50" aria-label="Percentual do tamanho original"></div><div class="dica">Com 50, um arquivo de 50 MB sai com cerca de 25 MB.</div></div>
+    <div class="sub hide" id="${kind}-mb-box"><div class="unid" data-u="MB"><input type="number" id="${kind}-mb" min="0.01" step="0.1" value="25" aria-label="Tamanho alvo em megabytes"></div><div class="dica">Cada arquivo tenta ficar abaixo desse valor.</div></div>
+    <div class="dica aviso hide" id="${kind}-pnghint">PNG não perde qualidade, então só diminui se você reduzir a resolução. Para comprimir, use WebP ou JPEG.</div>
+  </div>
+  <div class="campo"><span class="rot">Resolução</span>
+    <select id="${kind}-res" data-seg><option value="orig">Original</option><option value="custom">Personalizada</option><option value="scale">Escala</option></select>
+    <div class="sub hide" id="${kind}-custom-box">
+      <div class="par"><div class="unid" data-u="px" style="flex:1"><input type="number" id="${kind}-w" min="1" placeholder="Largura" aria-label="Largura em pixels"></div><span>×</span><div class="unid" data-u="px" style="flex:1"><input type="number" id="${kind}-h" min="1" placeholder="Altura" aria-label="Altura em pixels"></div></div>
+      <select id="${kind}-fit" class="vis" style="margin-top:8px" aria-label="Como encaixar">
+        <option value="fit">Manter proporção</option>
+        <option value="cover">Preencher e cortar o excesso</option>
+        <option value="stretch">Esticar até o tamanho exato</option>
+      </select>
+      <div class="dica">Preencha só um lado para manter a proporção. Ampliar (500×500 para 1000×1000) aumenta as dimensões, mas não cria detalhe novo.</div>
+    </div>
+    <div class="sub hide" id="${kind}-scale-box"><div class="unid" data-u="%"><input type="number" id="${kind}-scale" min="1" max="800" value="50" aria-label="Escala em percentual"></div><div class="dica">100 mantém o tamanho, 200 dobra.</div></div>
+  </div>
+  ${isImg?'':`<div class="campo"><span class="rot">Velocidade</span><select id="vid-speed" data-seg><option value="fast">Rápido</option><option value="balanced" selected>Equilibrado</option></select><div class="dica">Rápido termina antes e gera um arquivo um pouco maior.</div></div>`}
+  </section>`;
+}
+$('#sections').innerHTML = section('image') + section('video');
+
+function makeSeg(sel){
+  sel.classList.add('hide');
+  const box=document.createElement('div'); box.className='seg'; box.setAttribute('role','group');
+  const upd=()=>box.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===sel.value)));
+  [...sel.options].forEach(op=>{
+    const b=document.createElement('button'); b.type='button'; b.textContent=op.textContent; b.dataset.v=op.value;
+    b.onclick=()=>{ sel.value=op.value; sel.dispatchEvent(new Event('input',{bubbles:true})); };
+    box.appendChild(b);
+  });
+  sel.after(box); sel.addEventListener('input',upd); upd();
+}
+document.querySelectorAll('select[data-seg]').forEach(makeSeg);
+
+const FMT_HINT = {image:{'image/webp':'Menor que JPEG com a mesma qualidade. Abre em todos os navegadores atuais.','image/jpeg':'Abre em qualquer lugar. Fundo transparente vira branco.','image/png':'Sem perda de qualidade, arquivos grandes.','image/avif':'Muito pequeno, mas nem todo aparelho abre.'},
+                  video:{mp4:'Abre em qualquer aparelho. Melhor escolha para WhatsApp e redes sociais.',webm:'Para uso na web. Neste site sai em VP8, que comprime menos que o MP4.'}};
+function wireSettings(kind){
+  const g = id => $('#'+kind+'-'+id);
+  const sync = () => {
+    const c=g('comp').value, r=g('res').value;
+    g('q-box').classList.toggle('hide', c!=='quality');
+    g('pct-box').classList.toggle('hide', c!=='pct');
+    g('mb-box').classList.toggle('hide', c!=='mb');
+    g('custom-box').classList.toggle('hide', r!=='custom');
+    g('scale-box').classList.toggle('hide', r!=='scale');
+    g('qv').textContent = g('q').value;
+    g('fmthint').textContent = FMT_HINT[kind][g('fmt').value]||'';
+    if(kind==='image') g('pnghint').classList.toggle('hide', g('fmt').value!=='image/png');
+  };
+  ['comp','res','q','fmt'].forEach(k=>g(k).addEventListener('input',sync)); sync();
+}
+wireSettings('image'); wireSettings('video');
+
+function readOpts(kind){
+  const g = id => $('#'+kind+'-'+id);
+  return { fmt:g('fmt').value, comp:g('comp').value, q:+g('q').value, pct:+g('pct').value, mb:+g('mb').value,
+    res:g('res').value, w:+g('w').value||0, h:+g('h').value||0, fit:g('fit').value, scale:+g('scale').value,
+    speed: kind==='video' ? $('#vid-speed').value : null };
+}
+
+/* ---------- plano de resolução (serve para imagem e vídeo) ---------- */
+function plan(sw, sh, o, forVideo){
+  let ow=sw, oh=sh, cx=0, cy=0, cw=sw, ch=sh;
+  if(o.res==='scale'){ const f=o.scale/100; ow=Math.round(sw*f); oh=Math.round(sh*f); }
+  else if(o.res==='custom' && (o.w||o.h)){
+    if(!o.w){ ow=Math.round(sw*o.h/sh); oh=o.h; }
+    else if(!o.h){ ow=o.w; oh=Math.round(sh*o.w/sw); }
+    else if(o.fit==='stretch'){ ow=o.w; oh=o.h; }
+    else if(o.fit==='fit'){ const f=Math.min(o.w/sw,o.h/sh); ow=Math.round(sw*f); oh=Math.round(sh*f); }
+    else { ow=o.w; oh=o.h; const ar=ow/oh;
+      if(sw/sh>ar){ cw=Math.round(sh*ar); ch=sh; cx=Math.round((sw-cw)/2); } else { cw=sw; ch=Math.round(sw/ar); cy=Math.round((sh-ch)/2); } }
+  }
+  if(forVideo){ ow=even(ow); oh=even(oh); cw-=cw%2; ch-=ch%2; }
+  ow=Math.max(1,ow); oh=Math.max(1,oh);
+  return {ow,oh,cx,cy,cw,ch, cropped:(cw!==sw||ch!==sh), changed:(ow!==sw||oh!==sh||cw!==sw||ch!==sh)};
+}
+
+/* ---------- imagem ---------- */
+function drawScaled(bmp, p, bg){
+  let src=bmp, sx=p.cx, sy=p.cy, sw=p.cw, sh=p.ch;
+  while(sw/2 >= p.ow && sw/2>=1 && sh/2>=p.oh){
+    const c=document.createElement('canvas'); c.width=Math.ceil(sw/2); c.height=Math.ceil(sh/2);
+    const x=c.getContext('2d'); x.imageSmoothingQuality='high'; x.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height);
+    src=c; sx=0; sy=0; sw=c.width; sh=c.height;
+  }
+  const out=document.createElement('canvas'); out.width=p.ow; out.height=p.oh;
+  const x=out.getContext('2d'); if(bg){x.fillStyle=bg;x.fillRect(0,0,p.ow,p.oh);}
+  x.imageSmoothingQuality='high'; x.drawImage(src,sx,sy,sw,sh,0,0,p.ow,p.oh);
+  return out;
+}
+const toBlob = (c,m,q) => new Promise(r=>c.toBlob(r,m,q));
+
+async function convertImage(it, o, setProg){
+  const bmp = await createImageBitmap(it.file);
+  const p = plan(bmp.width, bmp.height, o, false);
+  const canvas = drawScaled(bmp, p, o.fmt==='image/jpeg' ? '#ffffff' : null);
+  let blob, note='';
+  const lossy = o.fmt!=='image/png';
+  if(o.comp==='quality' || !lossy){
+    blob = await toBlob(canvas, o.fmt, o.q/100);
+  } else {
+    const target = o.comp==='mb' ? o.mb*1048576 : it.file.size*o.pct/100;
+    let lo=0.02, hi=0.98, best=null;
+    const lowest = await toBlob(canvas,o.fmt,lo);
+    if(lowest.size>target){ blob=lowest; note='Não chegou no tamanho alvo só com qualidade. Reduza também a resolução.'; }
+    else {
+      best=lowest;
+      for(let i=0;i<9;i++){ const mid=(lo+hi)/2; const b=await toBlob(canvas,o.fmt,mid); if(b.size<=target){best=b;lo=mid;} else hi=mid; setProg((i+1)/9); }
+      blob=best;
+    }
+  }
+  if(blob.type!==o.fmt) throw new Error('Este navegador não consegue gerar '+o.fmt+'.');
+  return {blob, w:p.ow, h:p.oh, note};
+}
+
+/* ---------- vídeo (ffmpeg.wasm) ---------- */
+let ff=null, ffLoading=null, ffLog=[], ffProgress=()=>{};
+async function getFF(){
+  if(ff) return ff;
+  if(ffLoading) return ffLoading;
+  ffLoading = (async()=>{
+    const f=new FFmpeg();
+    f.on('log',({message})=>{ ffLog.push(message); if(ffLog.length>200) ffLog.shift(); });
+    f.on('progress',({progress})=>ffProgress(Math.min(1,Math.max(0,progress))));
+    await f.load({ coreURL:new URL('./vendor/core/ffmpeg-core.js',location.href).href, wasmURL:new URL('./vendor/core/ffmpeg-core.wasm',location.href).href });
+    ff=f; return f;
+  })();
+  try{ return await ffLoading; } finally { ffLoading=null; }
+}
+
+async function convertVideo(it, o, setProg){
+  const f = await getFF();
+  const inName='in_'+it.id+'.'+(ext(it.file.name)||'mp4');
+  const isMp4=o.fmt==='mp4', outExt=isMp4?'mp4':'webm', outName='out_'+it.id+'.'+outExt;
+  ffLog=[]; ffProgress=setProg;
+  await f.writeFile(inName, await fetchFile(it.file));
+  try{
+    let dur=it.dur;
+    if(!dur){ await f.exec(['-i',inName]).catch(()=>{}); const m=ffLog.join('\n').match(/Duration:\s*(\d+):(\d+):(\d+\.?\d*)/); if(m) dur=+m[1]*3600+ +m[2]*60+ +m[3]; ffLog=[]; }
+    const p = plan(it.w||0, it.h||0, o, true);
+    const vf=[];
+    if(it.w){
+      if(p.cropped) vf.push(`crop=${p.cw}:${p.ch}:${p.cx}:${p.cy}`);
+      if(p.changed || it.w%2 || it.h%2) vf.push(`scale=${p.ow}:${p.oh}:flags=lanczos`);
+    }
+    const abr = isMp4?128000:96000; let rate, note='';
+    if(o.comp==='quality'){
+      const q=o.q;
+      rate = isMp4 ? ['-crf',String(Math.round(40-q*0.22))] : ['-crf',String(Math.round(50-q*0.3)),'-b:v','8M'];
+    } else {
+      if(!dur) throw new Error('Não consegui ler a duração do vídeo para calcular o tamanho alvo. Use o modo Qualidade.');
+      const target = o.comp==='mb' ? o.mb*1048576 : it.file.size*o.pct/100;
+      let vbr = Math.floor(target*8*0.96/dur - abr);
+      if(vbr<60000){ vbr=60000; note='O alvo é pequeno demais para essa duração. O arquivo deve passar dele.'; }
+      rate = isMp4 ? ['-b:v',String(vbr),'-maxrate',String(Math.round(vbr*1.5)),'-bufsize',String(vbr*3)] : ['-b:v',String(vbr)];
+    }
+    const codec = isMp4
+      ? ['-c:v','libx264','-preset',o.speed==='fast'?'ultrafast':'veryfast','-pix_fmt','yuv420p',...rate,'-c:a','aac','-b:a','128k','-movflags','+faststart']
+      : ['-c:v','libvpx','-deadline','realtime','-cpu-used',o.speed==='fast'?'8':'5','-pix_fmt','yuv420p',...rate,'-c:a','libopus','-b:a','96k'];
+    const args=['-i',inName,...(vf.length?['-vf',vf.join(',')]:[]),...codec,'-y',outName];
+    const code = await f.exec(args);
+    if(code!==0) throw new Error('O ffmpeg falhou: '+ffLog.filter(l=>l.trim()).slice(-3).join(' | '));
+    const data = await f.readFile(outName);
+    const blob = new Blob([data.buffer],{type:isMp4?'video/mp4':'video/webm'});
+    return {blob, w:it.w?p.ow:0, h:it.w?p.oh:0, note};
+  } finally {
+    try{await f.deleteFile(inName);}catch{} try{await f.deleteFile(outName);}catch{}
+  }
+}
+
+/* ---------- lista de arquivos ---------- */
+const items=[]; let seq=0, running=false;
+const probeImage = async f => { const b=await createImageBitmap(f); const r={w:b.width,h:b.height}; b.close(); return r; };
+const probeVideo = f => new Promise(res=>{
+  const v=document.createElement('video'), u=URL.createObjectURL(f); v.preload='auto'; v.muted=true; v.playsInline=true;
+  let info=null, settled=false;
+  const done=()=>{ if(settled) return; settled=true; URL.revokeObjectURL(u); res(info||{w:0,h:0,dur:0}); };
+  v.onloadedmetadata=()=>{ info={w:v.videoWidth,h:v.videoHeight,dur:isFinite(v.duration)?v.duration:0}; try{ v.currentTime=Math.min(0.5,(v.duration||1)/2); }catch{} };
+  v.onseeked=()=>{ try{ const c=document.createElement('canvas'), s=Math.min(1,160/v.videoWidth); c.width=Math.round(v.videoWidth*s); c.height=Math.round(v.videoHeight*s); c.getContext('2d').drawImage(v,0,0,c.width,c.height); info.thumb=c.toDataURL('image/jpeg',.7); }catch{} done(); };
+  v.onerror=done; setTimeout(done,2500); v.src=u;
+});
+
+async function addFiles(list){
+  for(const file of list){
+    const kind=kindOf(file);
+    if(!kind) continue;
+    const it={id:++seq,file,kind,w:0,h:0,dur:0,status:'ready'};
+    try{ Object.assign(it, kind==='image' ? await probeImage(file) : await probeVideo(file)); }
+    catch{ it.status='error'; it.msg='O navegador não abre esse formato (fotos HEIC, por exemplo). Converta para JPG antes.'; }
+    if(kind==='image' && it.status!=='error') it.thumb=URL.createObjectURL(file);
+    items.push(it); render(it); refresh();
+  }
+}
+
+function render(it){
+  const el=document.createElement('div'); el.className='item'; el.id='it'+it.id;
+  const dur = it.dur ? ' · '+(it.dur>=60 ? Math.floor(it.dur/60)+' min '+Math.round(it.dur%60)+' s' : Math.round(it.dur)+' s') : '';
+  el.innerHTML=`<div class="thumb">${it.thumb?`<img alt="" src="${it.thumb}">`:(it.kind==='video'?'Vídeo':'Imagem')}</div>
+    <div style="min-width:0"><div class="nome" title="${esc(it.file.name)}">${esc(it.file.name)}</div>
+    <div class="meta">${fmt(it.file.size)}${it.w?` · ${it.w}×${it.h}`:''}${dur}</div></div>
+    <div class="acoes"><button class="btn dl hide">Baixar</button><button class="link rm">Remover</button></div>
+    <div class="estado"></div>`;
+  $('#list').appendChild(el); it.el=el;
+  el.querySelector('.rm').onclick=()=>{ if(running) return; items.splice(items.indexOf(it),1); if(it.thumb&&it.kind==='image') URL.revokeObjectURL(it.thumb); el.remove(); refresh(); };
+  el.querySelector('.dl').onclick=()=>download(it);
+  if(it.status==='error') setSt(it,`<span class="msg-erro">${it.msg}</span>`);
+}
+const setSt=(it,html)=>it.el.querySelector('.estado').innerHTML=html;
+const setBar=(it,p)=>{ let b=it.el.querySelector('.prog'); if(p==null){ b?.remove(); return; } if(!b){ b=document.createElement('div'); b.className='prog'; b.innerHTML='<i></i>'; it.el.querySelector('.estado').appendChild(b);} b.firstElementChild.style.width=(p*100)+'%'; };
+
+function outputName(it,o){
+  const e=(it.kind==='image'?IMG_FORMATS.find(f=>f.v===o.fmt).e:o.fmt);
+  const base=it.file.name.replace(/\.[^.]+$/,'');
+  return base+(ext(it.file.name)===e||(e==='jpg'&&ext(it.file.name)==='jpeg')?'-convertido':'')+'.'+e;
+}
+function download(it){ const a=document.createElement('a'); a.href=URL.createObjectURL(it.out); a.download=it.outName; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
+
+function refresh(){
+  document.body.classList.toggle('has-files',items.length>0);
+  $('#toolbar').classList.toggle('hide',!items.length);
+  $('#count').textContent = items.length+(items.length===1?' arquivo':' arquivos');
+  for(const k of ['image','video']){
+    const n=items.filter(i=>i.kind===k).length;
+    $('#card-'+k).classList.toggle('hide',!n); $('#cnt-'+k).textContent=n?`${n} ${n>1?'arquivos':'arquivo'}`:'';
+  }
+  $('#go').disabled=running||!items.some(i=>i.status!=='error');
+  $('#clear').disabled=running||!items.length;
+  $('#zip').disabled=!items.some(i=>i.out);
+}
+
+function showResult(it,r,secs){
+  const pct=Math.round((1-r.blob.size/it.file.size)*100), mais=r.blob.size>it.file.size;
+  const width=Math.min(100,r.blob.size/it.file.size*100);
+  setSt(it,`<div class="ruler"><div class="ruler-track"><div class="ruler-cut"></div></div>
+    <div class="ruler-nums"><strong>${fmt(r.blob.size)}</strong><span class="de">de ${fmt(it.file.size)}</span>
+    <span class="delta ${mais?'mais':''}">${mais?'+'+Math.abs(pct):'−'+pct}%</span>
+    <span class="dim">${r.w?r.w+'×'+r.h+' · ':''}${nf(secs,1)} s</span></div></div>`+(r.note?`<div class="msg-aviso">${r.note}</div>`:''));
+  const cut=it.el.querySelector('.ruler-cut'); void cut.offsetWidth; requestAnimationFrame(()=>{ cut.style.width=width+'%'; });
+}
+
+async function runAll(){
+  running=true; $('#go').classList.add('hide'); $('#cancel').classList.remove('hide'); refresh();
+  const opts={image:readOpts('image'),video:readOpts('video')};
+  for(const it of items){
+    if(it.status==='error') continue;
+    it.status='working'; it.out=null; it.el.classList.add('working'); it.el.querySelector('.dl').classList.add('hide');
+    setSt(it,`<span class="msg-info">${it.kind==='video'&&!ff?'Carregando o motor de vídeo (só na primeira vez)…':'Processando…'}</span>`); setBar(it,0);
+    const o=opts[it.kind], t0=performance.now();
+    try{
+      const r = it.kind==='image' ? await convertImage(it,o,p=>setBar(it,p)) : await convertVideo(it,o,p=>setBar(it,p));
+      it.out=r.blob; it.outName=outputName(it,o); it.status='done';
+      showResult(it,r,(performance.now()-t0)/1000);
+      it.el.querySelector('.dl').classList.remove('hide');
+    }catch(e){
+      if(it.status==='cancel') { it.el.classList.remove('working'); break; }
+      it.status='error'; if(it.kind==='video'&&ff){ try{ff.terminate();}catch{} ff=null; }
+      console.error('ffmpeg log:', ffLog.slice(-12).join(' // '));
+      setSt(it,`<span class="msg-erro">Erro: ${esc(String(e.message||e))}</span>`);
+    }
+    it.el.classList.remove('working'); refresh();
+  }
+  running=false; $('#cancel').classList.add('hide'); $('#go').classList.remove('hide'); refresh();
+}
+
+$('#cancel').onclick=()=>{ const cur=items.find(i=>i.status==='working'); if(cur){cur.status='cancel'; setSt(cur,'<span class="msg-aviso">Cancelado.</span>');} if(ff){ff.terminate();ff=null;} };
+$('#go').onclick=runAll;
+$('#clear').onclick=()=>{ items.length=0; $('#list').innerHTML=''; refresh(); };
+
+/* ---------- zip (sem compressão, só empacota) ---------- */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+const crc32=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRC[(c^b[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;};
+async function makeZip(files){
+  const enc=new TextEncoder(), parts=[], cen=[]; let off=0; const used=new Set();
+  for(let {name,blob} of files){
+    while(used.has(name)) name=name.replace(/(\.[^.]+)$/,'-2$1'); used.add(name);
+    const data=new Uint8Array(await blob.arrayBuffer()), nm=enc.encode(name), crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30)); lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint32(14,crc,true);lh.setUint32(18,data.length,true);lh.setUint32(22,data.length,true);lh.setUint16(26,nm.length,true);
+    parts.push(lh.buffer,nm,data);
+    const ch=new DataView(new ArrayBuffer(46)); ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint32(16,crc,true);ch.setUint32(20,data.length,true);ch.setUint32(24,data.length,true);ch.setUint16(28,nm.length,true);ch.setUint32(42,off,true);
+    cen.push(ch.buffer,nm); off+=30+nm.length+data.length;
+  }
+  const csz=cen.reduce((s,b)=>s+(b.byteLength??b.length),0);
+  const end=new DataView(new ArrayBuffer(22)); end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,csz,true);end.setUint32(16,off,true);
+  return new Blob([...parts,...cen,end.buffer],{type:'application/zip'});
+}
+$('#zip').onclick=async()=>{ const done=items.filter(i=>i.out); const z=await makeZip(done.map(i=>({name:i.outName,blob:i.out}))); const a=document.createElement('a'); a.href=URL.createObjectURL(z); a.download='arquivos-convertidos.zip'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); };
+
+/* ---------- entrada de arquivos ---------- */
+const drop=$('#drop'), pick=$('#pick');
+drop.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); pick.click(); } });
+pick.onchange=()=>{ addFiles([...pick.files]); pick.value=''; };
+['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over');}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over');}));
+drop.addEventListener('drop',ev=>addFiles([...ev.dataTransfer.files]));
+window.addEventListener('dragover',e=>e.preventDefault()); window.addEventListener('drop',e=>e.preventDefault());
+const temaBtns=[...document.querySelectorAll('#tema button')];
+const marcaTema=()=>temaBtns.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===document.documentElement.dataset.theme)));
+temaBtns.forEach(b=>b.onclick=()=>{ document.documentElement.dataset.theme=b.dataset.t; try{localStorage.setItem('tema',b.dataset.t);}catch{} marcaTema(); });
+marcaTema();
+refresh();
+</script>
+</body>
+</html>
