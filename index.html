@@ -144,14 +144,14 @@ input[type=range]{width:100%;accent-color:var(--laranja);height:24px;margin:0}
     <label class="drop" id="drop" tabindex="0">
       <div class="drop-big">
         <h1>Solte aqui seus arquivos</h1>
-        <p>Troque o formato, reduza o tamanho e mude a resolução de imagens e vídeos. Tudo é processado neste computador, nada é enviado para a internet.</p>
+        <p>Troque o formato, reduza o tamanho e mude a resolução de imagens e vídeos, e comprima PDFs. Tudo é processado neste computador, nada é enviado para a internet.</p>
         <span class="btn">Escolher arquivos</span>
       </div>
       <div class="drop-small">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 3v12M3 9h12"/></svg>
         Adicionar mais arquivos, ou solte aqui
       </div>
-      <input id="pick" type="file" multiple accept="image/*,video/*,.mkv,.avi,.mov,.m4v,.3gp,.wmv,.flv" class="hide">
+      <input id="pick" type="file" multiple accept="image/*,video/*,application/pdf,.pdf,.mkv,.avi,.mov,.m4v,.3gp,.wmv,.flv" class="hide">
     </label>
 
     <div class="toolbar hide" id="toolbar">
@@ -187,7 +187,7 @@ const fmt = b => b>=1073741824 ? nf(b/1073741824,2)+' GB' : b>=1048576 ? nf(b/10
 const esc = s => s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const VIDEO_EXT = ['mp4','mov','webm','mkv','avi','m4v','3gp','wmv','flv'];
 const ext = n => (n.split('.').pop()||'').toLowerCase();
-const kindOf = f => f.type.startsWith('image/') ? 'image' : (f.type.startsWith('video/') || VIDEO_EXT.includes(ext(f.name))) ? 'video' : null;
+const kindOf = f => (f.type==='application/pdf'||ext(f.name)==='pdf') ? 'pdf' : f.type.startsWith('image/') ? 'image' : (f.type.startsWith('video/') || VIDEO_EXT.includes(ext(f.name))) ? 'video' : null;
 const even = n => Math.max(2, Math.round(n/2)*2);
 
 /* ---------- suporte de formatos de imagem do navegador ---------- */
@@ -199,26 +199,27 @@ for (const f of IMG_FORMATS) supported[f.v] = await canEncode(f.v);
 
 /* ---------- painel de ajustes ---------- */
 function section(kind){
-  const isImg = kind==='image';
+  const isImg = kind==='image', isPdf = kind==='pdf';
   const fmts = (isImg ? IMG_FORMATS.filter(f=>supported[f.v]) : VID_FORMATS).map(f=>`<option value="${f.v}">${f.l}</option>`).join('');
   return `<section class="sec hide" id="card-${kind}">
-  <h2>${isImg?'Imagens':'Vídeos'} <small id="cnt-${kind}"></small></h2>
-  <div class="campo"><span class="rot">Formato de saída</span>
+  <h2>${isImg?'Imagens':isPdf?'PDFs':'Vídeos'} <small id="cnt-${kind}"></small></h2>
+  ${isPdf?'':`<div class="campo"><span class="rot">Formato de saída</span>
     <select id="${kind}-fmt" data-seg>${fmts}</select>
     <div class="dica" id="${kind}-fmthint"></div>
-  </div>
+  </div>`}
   <div class="campo"><span class="rot">Tamanho do arquivo</span>
     <select id="${kind}-comp" data-seg>
       <option value="quality">Qualidade</option>
       <option value="pct">% do original</option>
       <option value="mb">Tamanho alvo</option>
     </select>
-    <div class="sub" id="${kind}-q-box"><input type="range" id="${kind}-q" min="1" max="100" value="${isImg?80:60}" aria-label="Qualidade"><div class="valor-q"><span>Menor arquivo</span><span id="${kind}-qv"></span><span>Melhor qualidade</span></div></div>
+    <div class="sub" id="${kind}-q-box"><input type="range" id="${kind}-q" min="1" max="100" value="${isImg?80:isPdf?50:60}" aria-label="Qualidade"><div class="valor-q"><span>Menor arquivo</span><span id="${kind}-qv"></span><span>Melhor qualidade</span></div></div>
     <div class="sub hide" id="${kind}-pct-box"><div class="unid" data-u="%"><input type="number" id="${kind}-pct" min="1" max="99" value="50" aria-label="Percentual do tamanho original"></div><div class="dica">Com 50, um arquivo de 50 MB sai com cerca de 25 MB.</div></div>
     <div class="sub hide" id="${kind}-mb-box"><div class="unid" data-u="MB"><input type="number" id="${kind}-mb" min="0.01" step="0.1" value="25" aria-label="Tamanho alvo em megabytes"></div><div class="dica">Cada arquivo tenta ficar abaixo desse valor.</div></div>
+    ${isPdf?'<div class="dica">Mantém o texto selecionável e reduz as imagens do PDF. PDFs só com texto quase não diminuem.</div>':''}
     <div class="dica aviso hide" id="${kind}-pnghint">PNG não perde qualidade, então só diminui se você reduzir a resolução. Para comprimir, use WebP ou JPEG.</div>
   </div>
-  <div class="campo"><span class="rot">Resolução</span>
+  ${isPdf?'':`<div class="campo"><span class="rot">Resolução</span>
     <select id="${kind}-res" data-seg><option value="orig">Original</option><option value="custom">Personalizada</option><option value="scale">Escala</option></select>
     <div class="sub hide" id="${kind}-custom-box">
       <div class="par"><div class="unid" data-u="px" style="flex:1"><input type="number" id="${kind}-w" min="1" placeholder="Largura" aria-label="Largura em pixels"></div><span>×</span><div class="unid" data-u="px" style="flex:1"><input type="number" id="${kind}-h" min="1" placeholder="Altura" aria-label="Altura em pixels"></div></div>
@@ -230,11 +231,11 @@ function section(kind){
       <div class="dica">Preencha só um lado para manter a proporção. Ampliar (500×500 para 1000×1000) aumenta as dimensões, mas não cria detalhe novo.</div>
     </div>
     <div class="sub hide" id="${kind}-scale-box"><div class="unid" data-u="%"><input type="number" id="${kind}-scale" min="1" max="800" value="50" aria-label="Escala em percentual"></div><div class="dica">100 mantém o tamanho, 200 dobra.</div></div>
-  </div>
-  ${isImg?'':`<div class="campo"><span class="rot">Velocidade</span><select id="vid-speed" data-seg><option value="fast">Rápido</option><option value="balanced" selected>Equilibrado</option></select><div class="dica">Rápido termina antes e gera um arquivo um pouco maior.</div></div>`}
+  </div>`}
+  ${kind!=='video'?'':`<div class="campo"><span class="rot">Velocidade</span><select id="vid-speed" data-seg><option value="fast">Rápido</option><option value="balanced" selected>Equilibrado</option></select><div class="dica">Rápido termina antes e gera um arquivo um pouco maior.</div></div>`}
   </section>`;
 }
-$('#sections').innerHTML = section('image') + section('video');
+$('#sections').innerHTML = section('image') + section('video') + section('pdf');
 
 function makeSeg(sel){
   sel.classList.add('hide');
@@ -253,23 +254,27 @@ const FMT_HINT = {image:{'image/webp':'Menor que JPEG com a mesma qualidade. Abr
                   video:{mp4:'Abre em qualquer aparelho. Melhor escolha para WhatsApp e redes sociais.',webm:'Para uso na web. Neste site sai em VP8, que comprime menos que o MP4.'}};
 function wireSettings(kind){
   const g = id => $('#'+kind+'-'+id);
+  const pdf = kind==='pdf';
   const sync = () => {
-    const c=g('comp').value, r=g('res').value;
+    const c=g('comp').value;
     g('q-box').classList.toggle('hide', c!=='quality');
     g('pct-box').classList.toggle('hide', c!=='pct');
     g('mb-box').classList.toggle('hide', c!=='mb');
+    g('qv').textContent = g('q').value;
+    if(pdf) return;
+    const r=g('res').value;
     g('custom-box').classList.toggle('hide', r!=='custom');
     g('scale-box').classList.toggle('hide', r!=='scale');
-    g('qv').textContent = g('q').value;
     g('fmthint').textContent = FMT_HINT[kind][g('fmt').value]||'';
     if(kind==='image') g('pnghint').classList.toggle('hide', g('fmt').value!=='image/png');
   };
-  ['comp','res','q','fmt'].forEach(k=>g(k).addEventListener('input',sync)); sync();
+  (pdf?['comp','q']:['comp','res','q','fmt']).forEach(k=>g(k).addEventListener('input',sync)); sync();
 }
-wireSettings('image'); wireSettings('video');
+wireSettings('image'); wireSettings('video'); wireSettings('pdf');
 
 function readOpts(kind){
   const g = id => $('#'+kind+'-'+id);
+  if(kind==='pdf') return { comp:g('comp').value, q:+g('q').value, pct:+g('pct').value, mb:+g('mb').value };
   return { fmt:g('fmt').value, comp:g('comp').value, q:+g('q').value, pct:+g('pct').value, mb:+g('mb').value,
     res:g('res').value, w:+g('w').value||0, h:+g('h').value||0, fit:g('fit').value, scale:+g('scale').value,
     speed: kind==='video' ? $('#vid-speed').value : null };
@@ -385,6 +390,37 @@ async function convertVideo(it, o, setProg){
   }
 }
 
+/* ---------- PDF (Ghostscript wasm em um worker) ---------- */
+let pdfWorker=null;
+function runGS(data,q){
+  return new Promise((res,rej)=>{
+    if(!pdfWorker) pdfWorker=new Worker('./pdf-worker.js',{type:'module'});
+    pdfWorker.onmessage=e=>e.data.ok?res(e.data.data):rej(new Error(e.data.error));
+    pdfWorker.onerror=()=>rej(new Error('Não consegui carregar o motor de PDF.'));
+    pdfWorker.postMessage({data,q},[data]);
+  });
+}
+async function convertPdf(it,o,setProg,setMsg){
+  const orig=await it.file.arrayBuffer();
+  let blob=null, best=null, note='';
+  if(o.comp==='quality'){
+    setMsg('Comprimindo…'); setProg(.5);
+    blob=new Blob([await runGS(orig.slice(0),o.q)],{type:'application/pdf'});
+  } else {
+    const target = o.comp==='mb' ? o.mb*1048576 : it.file.size*o.pct/100;
+    const steps=[90,75,60,45,30,15,5];
+    for(let i=0;i<steps.length;i++){
+      setMsg(`Tentativa ${i+1} de ${steps.length}…`); setProg(i/steps.length);
+      const b=new Blob([await runGS(orig.slice(0),steps[i])],{type:'application/pdf'});
+      if(!best||b.size<best.size) best=b;
+      if(b.size<=target){ blob=b; break; }
+    }
+    if(!blob){ blob=best; note='Não chegou no tamanho alvo. PDFs com pouca imagem ou já otimizados comprimem pouco.'; }
+  }
+  if(blob.size>=it.file.size){ blob=it.file; note=(note?note+' ':'')+'O PDF já estava otimizado, então mantive o original.'; }
+  return {blob, w:0, h:0, note};
+}
+
 /* ---------- lista de arquivos ---------- */
 const items=[]; let seq=0, running=false;
 const probeImage = async f => { const b=await createImageBitmap(f); const r={w:b.width,h:b.height}; b.close(); return r; };
@@ -402,7 +438,7 @@ async function addFiles(list){
     const kind=kindOf(file);
     if(!kind) continue;
     const it={id:++seq,file,kind,w:0,h:0,dur:0,status:'ready'};
-    try{ Object.assign(it, kind==='image' ? await probeImage(file) : await probeVideo(file)); }
+    try{ Object.assign(it, kind==='image' ? await probeImage(file) : kind==='video' ? await probeVideo(file) : {}); }
     catch{ it.status='error'; it.msg='O navegador não abre esse formato (fotos HEIC, por exemplo). Converta para JPG antes.'; }
     if(kind==='image' && it.status!=='error') it.thumb=URL.createObjectURL(file);
     items.push(it); render(it); refresh();
@@ -412,7 +448,7 @@ async function addFiles(list){
 function render(it){
   const el=document.createElement('div'); el.className='item'; el.id='it'+it.id;
   const dur = it.dur ? ' · '+(it.dur>=60 ? Math.floor(it.dur/60)+' min '+Math.round(it.dur%60)+' s' : Math.round(it.dur)+' s') : '';
-  el.innerHTML=`<div class="thumb">${it.thumb?`<img alt="" src="${it.thumb}">`:(it.kind==='video'?'Vídeo':'Imagem')}</div>
+  el.innerHTML=`<div class="thumb">${it.thumb?`<img alt="" src="${it.thumb}">`:(it.kind==='video'?'Vídeo':it.kind==='pdf'?'PDF':'Imagem')}</div>
     <div style="min-width:0"><div class="nome" title="${esc(it.file.name)}">${esc(it.file.name)}</div>
     <div class="meta">${fmt(it.file.size)}${it.w?` · ${it.w}×${it.h}`:''}${dur}</div></div>
     <div class="acoes"><button class="btn dl hide">Baixar</button><button class="link rm">Remover</button></div>
@@ -426,6 +462,7 @@ const setSt=(it,html)=>it.el.querySelector('.estado').innerHTML=html;
 const setBar=(it,p)=>{ let b=it.el.querySelector('.prog'); if(p==null){ b?.remove(); return; } if(!b){ b=document.createElement('div'); b.className='prog'; b.innerHTML='<i></i>'; it.el.querySelector('.estado').appendChild(b);} b.firstElementChild.style.width=(p*100)+'%'; };
 
 function outputName(it,o){
+  if(it.kind==='pdf') return it.file.name.replace(/\.pdf$/i,'')+'-comprimido.pdf';
   const e=(it.kind==='image'?IMG_FORMATS.find(f=>f.v===o.fmt).e:o.fmt);
   const base=it.file.name.replace(/\.[^.]+$/,'');
   return base+(ext(it.file.name)===e||(e==='jpg'&&ext(it.file.name)==='jpeg')?'-convertido':'')+'.'+e;
@@ -436,7 +473,7 @@ function refresh(){
   document.body.classList.toggle('has-files',items.length>0);
   $('#toolbar').classList.toggle('hide',!items.length);
   $('#count').textContent = items.length+(items.length===1?' arquivo':' arquivos');
-  for(const k of ['image','video']){
+  for(const k of ['image','video','pdf']){
     const n=items.filter(i=>i.kind===k).length;
     $('#card-'+k).classList.toggle('hide',!n); $('#cnt-'+k).textContent=n?`${n} ${n>1?'arquivos':'arquivo'}`:'';
   }
@@ -457,20 +494,21 @@ function showResult(it,r,secs){
 
 async function runAll(){
   running=true; $('#go').classList.add('hide'); $('#cancel').classList.remove('hide'); refresh();
-  const opts={image:readOpts('image'),video:readOpts('video')};
+  const opts={image:readOpts('image'),video:readOpts('video'),pdf:readOpts('pdf')};
   for(const it of items){
     if(it.status==='error') continue;
     it.status='working'; it.out=null; it.el.classList.add('working'); it.el.querySelector('.dl').classList.add('hide');
     setSt(it,`<span class="msg-info">${it.kind==='video'&&!ff?'Carregando o motor de vídeo (só na primeira vez)…':'Processando…'}</span>`); setBar(it,0);
     const o=opts[it.kind], t0=performance.now();
     try{
-      const r = it.kind==='image' ? await convertImage(it,o,p=>setBar(it,p)) : await convertVideo(it,o,p=>setBar(it,p));
+      const setMsg=m=>{ const n=it.el.querySelector('.estado .msg-info'); if(n) n.textContent=m; };
+      const r = it.kind==='image' ? await convertImage(it,o,p=>setBar(it,p)) : it.kind==='pdf' ? await convertPdf(it,o,p=>setBar(it,p),setMsg) : await convertVideo(it,o,p=>setBar(it,p));
       it.out=r.blob; it.outName=outputName(it,o); it.status='done';
       showResult(it,r,(performance.now()-t0)/1000);
       it.el.querySelector('.dl').classList.remove('hide');
     }catch(e){
       if(it.status==='cancel') { it.el.classList.remove('working'); break; }
-      it.status='error'; if(it.kind==='video'&&ff){ try{ff.terminate();}catch{} ff=null; }
+      it.status='error'; if(it.kind==='video'&&ff){ try{ff.terminate();}catch{} ff=null; } if(it.kind==='pdf'&&pdfWorker){ try{pdfWorker.terminate();}catch{} pdfWorker=null; }
       console.error('ffmpeg log:', ffLog.slice(-12).join(' // '));
       setSt(it,`<span class="msg-erro">Erro: ${esc(String(e.message||e))}</span>`);
     }
@@ -479,7 +517,7 @@ async function runAll(){
   running=false; $('#cancel').classList.add('hide'); $('#go').classList.remove('hide'); refresh();
 }
 
-$('#cancel').onclick=()=>{ const cur=items.find(i=>i.status==='working'); if(cur){cur.status='cancel'; setSt(cur,'<span class="msg-aviso">Cancelado.</span>');} if(ff){ff.terminate();ff=null;} };
+$('#cancel').onclick=()=>{ const cur=items.find(i=>i.status==='working'); if(cur){cur.status='cancel'; setSt(cur,'<span class="msg-aviso">Cancelado.</span>');} if(ff){ff.terminate();ff=null;} if(pdfWorker){pdfWorker.terminate();pdfWorker=null;} };
 $('#go').onclick=runAll;
 $('#clear').onclick=()=>{ items.length=0; $('#list').innerHTML=''; refresh(); };
 

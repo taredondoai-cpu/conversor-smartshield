@@ -3,3 +3,7 @@ Conversor de mídia — como usar
    (não funciona abrindo o index.html com duplo clique: o navegador bloqueia o motor de vídeo).
 2) Online: suba a pasta inteira (index.html + vendor/) em qualquer hospedagem estática
    (Cloudflare Pages, Netlify, Vercel, GitHub Pages, sua hospedagem) com HTTPS.
+
+Licenças
+A compressão de PDF usa o Ghostscript compilado para WebAssembly (pasta vendor/gs, licença AGPL-3.0,
+código-fonte em https://github.com/jsscheller/ghostscript-wasm). A conversão de vídeo usa ffmpeg.wasm (pasta vendor/core).
